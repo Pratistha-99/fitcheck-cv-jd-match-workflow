@@ -1,0 +1,21 @@
+# Credentials and environment
+.env
+*.env
+credentials.json
+*_credentials.json
+
+# n8n local data
+.n8n/
+n8n.sqlite
+
+# Raw exports with real data
+*_real.json
+*_test.json
+*_backup.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/

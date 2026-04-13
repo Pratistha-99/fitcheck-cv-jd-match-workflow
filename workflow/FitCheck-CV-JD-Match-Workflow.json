@@ -1,0 +1,1231 @@
+{
+  "name": "FitCheck-CV-JD-Match-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Job Description Analysis",
+        "formDescription": "Paste a job description and upload your CV PDF.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job title",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Description",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "CV (PDF)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Cover Letter Tone",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Professional"
+                  },
+                  {
+                    "option": "Confident"
+                  },
+                  {
+                    "option": "Conversational"
+                  },
+                  {
+                    "option": "Assertive"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Cover Letter Length",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Concise"
+                  },
+                  {
+                    "option": "Standard"
+                  },
+                  {
+                    "option": "Detailed"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -384,
+        -128
+      ],
+      "id": "7645d5a0-ef04-4c90-b02b-74adadfa0503",
+      "name": "On form submission",
+      "webhookId": "23c44a77-7f5b-48d8-95c9-bbff5a264603"
+    },
+    {
+      "parameters": {
+        "content": "## FitCheck — CV & JD Match Workflow\n\n1. Triggered by form submission.\n2. Parses JD + CV in parallel, merges, \n3. scores the match, and emails results  + cover letter to the candidate.\n\nStack: n8n · OpenAI gpt-4o-mini · Google Sheets · Gmail",
+        "height": 192,
+        "width": 496,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -720,
+        -912
+      ],
+      "typeVersion": 1,
+      "id": "54564913-90cc-4808-8600-7b051b232969",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a job description parser for any professional role across any industry.\nExtract structured information from the job description and return ONLY valid JSON.\n\nRules:\n- Return ONLY valid JSON. No markdown, no code fences, no explanations.\n- Use only information explicitly stated in the job description.\n- If a field has no matching information, return its empty value (\"\", [], or false).\n- Field names must match the schema exactly. Do not rename or nest fields.\n- must_have_skills and responsibilities must be flat arrays, not nested objects.\n- Skills must be specific (e.g. \"Python\" not \"programming languages\", \"DCF modelling\" not \"financial skills\").\n- keywords should be role-relevant terms useful for CV matching, max 15.\n- job_family must be inferred freely from the JD (e.g. \"Data Scientist\", \"Management Consultant\", \"Software Engineer\", \"Product Manager\"). Do not limit to a fixed list.\n- seniority_level must be one of: Junior | Mid | Senior | Graduate | Internship.\n- domain_flags must be inferred dynamically from the JD. Identify all key capabilities the role requires regardless of industry or domain. Each flag must have a name and whether it is required or preferred.\n- Set required: true for capabilities explicitly required. Set required: false for capabilities that are preferred or implied.\n- key_competencies should capture behavioural and soft skill requirements explicitly stated (e.g. \"stakeholder management\", \"structured thinking\", \"client communication\").\n\nSchema:\n{\n  \"company\": \"string\",\n  \"job_title\": \"string\",\n  \"job_family\": \"string (inferred freely e.g. Data Scientist, Management Consultant, Software Engineer)\",\n  \"seniority_level\": \"string (Junior | Mid | Senior | Graduate | Internship)\",\n  \"must_have_skills\": [\"string (specific, explicitly required technical skills)\"],\n  \"nice_to_have_skills\": [\"string (preferred or bonus skills)\"],\n  \"keywords\": [\"string (max 15, role-relevant terms for CV matching)\"],\n  \"responsibilities\": [\"string\"],\n  \"education_requirements\": [\"string\"],\n  \"language_requirements\": [\"string\"],\n  \"key_competencies\": [\"string (behavioural or soft skills explicitly required)\"],\n  \"domain_flags\": [\n    {\n      \"flag\": \"string (capability this role requires e.g. ml, client_facing, financial_modelling, dashboarding, experimentation)\",\n      \"required\": boolean\n    }\n  ]\n}\n\nInput:\nCompany: {{ $('On form submission').item.json.Company }}\nRole title: {{ $('On form submission').item.json['Job title'] }}\nJob description:\n{{ $('On form submission').item.json['Job Description'] }}"
+            },
+            {
+              "content": "=Company: {{ $('On form submission').item.json.Company }}\nRole title: {{ $('On form submission').item.json['Job title'] }}\nJob description:\n{{ $('On form submission').item.json['Job Description'] }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        352,
+        -352
+      ],
+      "id": "dae69e7d-aa9c-4f7c-bdd2-3abe82d1ac88",
+      "name": "JD Parser",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are an expert recruiter evaluating a candidate's suitability for a role across any industry or domain.\n\nAnalyse the job description data and candidate CV data provided and return ONLY valid JSON.\n\nScoring rules:\n- match_score is 0–100 reflecting overall suitability.\n- Start at 100 and deduct points based on gaps.\n- Missing must-have skill: deduct 8–12 points each.\n- Missing nice-to-have skill: deduct 2–3 points each.\n- Required domain_flag not covered by demonstrated_competencies: deduct 8 points each.\n- Education requirement not met: deduct 10 points.\n- Relevant projects compensating for missing experience: add back 3–5 points each.\n- Strong competency alignment beyond minimum requirements: add 3–5 points.\n- Only identify gaps that are explicitly required by the JD. \n  Do not infer gaps from general role assumptions.\n\nexperience_fit rules:\n- \"strong\": match_score >= 75 and no missing must-have skills.\n- \"partial\": match_score 50–74 or 1–2 missing must-have skills.\n- \"weak\": match_score < 50 or 3+ missing must-have skills.\n\nReturn this exact schema:\n{\n  \"match_score\": number (0–100),\n  \"experience_fit\": \"strong\" | \"partial\" | \"weak\",\n  \"matched_skills\": [\"string\"],\n  \"missing_must_have\": [\"string\"],\n  \"missing_nice_to_have\": [\"string\"],\n  \"matched_domain_flags\": [\"string (flags from JD covered by candidate)\"],\n  \"unmatched_domain_flags\": [\"string (required flags from JD not covered by candidate)\"],\n  \"matched_competencies\": [\"string (JD key_competencies matched by candidate soft_skills or demonstrated_competencies)\"],\n  \"unmatched_competencies\": [\"string (JD key_competencies not evidenced in CV)\"],\n  \"strengths\": [\"string (max 4, specific to this role)\"],\n  \"gaps\": [\"string (max 4, specific to this role)\"],\n  \"recommendation\": \"string (2 sentences, specific to this candidate and role)\",\n  \"cv_summary_rewrite\": \"string (3 sentences, rewritten to target this specific role using candidate's actual experience)\",\n  \"bullet_rewrites\": [\"string (max 4, improved CV bullets based on candidate's actual experience, targeted to this role)\"],\n  \"skills_to_surface\": [\"string (skills or tools in CV relevant to JD but not prominently highlighted)\"]\n}\n\nRules:\n- Return ONLY valid JSON. No markdown, no code fences.\n- Base all assessments only on information provided.\n- bullet_rewrites must reflect real experience — do not invent achievements.\n- skills_to_surface must come from the candidate's actual CV data.\n\n\nTone instruction for cv_summary_rewrite and bullet_rewrites:\nWrite in a {{ $('On form submission').item.json['Cover Letter Tone'] }} tone.\n\n- professional: formal and precise, no personality, suitable for conservative industries\n- confident: direct and assured, owns achievements without arrogance\n- conversational: warm and human, feels like a real person not a template\n- assertive: bold and direct, strong statements, suitable for competitive applications"
+            },
+            {
+              "content": "=JD Data:\nCompany: {{ $json.company }}\nRole: {{ $json.job_title }}\nJob family: {{ $json.job_family }}\nSeniority: {{ $json.seniority_level }}\nMust-have skills: {{ $json.must_have_skills.join(', ') }}\nNice-to-have skills: {{ $json.nice_to_have_skills.join(', ') }}\nKeywords: {{ $json.keywords.join(', ') }}\nResponsibilities: {{ $json.responsibilities.join(' | ') }}\nEducation required: {{ $json.education_requirements.join(', ') }}\nKey competencies: {{ $json.key_competencies.join(', ') }}\nDomain flags: {{ $json.domain_flags.map(f => f.flag + ' (required: ' + f.required + ')').join(', ') }}\n\nCV Data:\nCandidate: {{ $json.candidate_name }}\nEducation: {{ $json.education.join(', ') }}\nTechnical skills: {{ $json.technical_skills.join(', ') }}\nSoft skills: {{ $json.soft_skills.join(', ') }}\nTools and platforms: {{ $json.tools_and_platforms.join(', ') }}\nLanguages: {{ $json.languages.join(', ') }}\nWork experience: {{ $json.work_experience.join(' | ') }}\nProjects: {{ $json.projects.join(' | ') }}\nDemonstrated competencies: {{ $json.demonstrated_competencies.join(', ') }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        -208
+      ],
+      "id": "8169d99d-b7ac-4cb0-8961-2db83cf261f4",
+      "name": "CV matcher",
+      "credentials": {
+        "openAiApi": {
+          "id": "slhPoNy1tHhamaAK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        -208
+      ],
+      "id": "42d59fde-5115-4c96-9537-42344a404fbb",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "CV__PDF_",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -128,
+        -128
+      ],
+      "id": "1578871e-0567-4fa0-aaf9-9d3ded29fe88",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1j6WWiZwkObq4_FWaA5LE-OlmnSokCw3RokvLyfgtPno",
+          "mode": "list",
+          "cachedResultName": "CV JD Match Tracker",
+          "cachedResultUrl": "Google_Sheet_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "Google_Sheet_URL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "submitted_at": "={{ $json.submitted_at }}",
+            "candidate_name": "={{ $json.candidate_name }}",
+            "email": "={{ $json.email }}",
+            "company": "={{ $json.company }}",
+            "job_title": "={{ $json.job_title }}",
+            "job_family": "={{ $json.job_family }}",
+            "seniority_level": "={{ $json.seniority_level }}",
+            "match_score": "={{ $json.match_score }}",
+            "experience_fit": "={{ $json.experience_fit }}",
+            "recommendation": "={{ $json.recommendation }}",
+            "matched_skills": "={{ $json.matched_skills }}",
+            "missing_must_have": "={{ $json.missing_must_have }}",
+            "missing_nice_to_have": "={{ $json.missing_nice_to_have }}",
+            "skills_to_surface": "={{ $json.skills_to_surface }}",
+            "matched_domain_flags": "={{ $json.matched_domain_flags }}",
+            "unmatched_domain_flags": "={{ $json.unmatched_domain_flags }}",
+            "matched_competencies": "={{ $json.matched_competencies }}",
+            "unmatched_competencies": "={{ $json.unmatched_competencies }}",
+            "strengths": "={{ $json.strengths }}",
+            "gaps": "={{ $json.gaps }}",
+            "cv_summary_rewrite": "={{ $json.cv_summary_rewrite }}",
+            "bullet_rewrites": "={{ $json.bullet_rewrites }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "job_family",
+              "displayName": "job_family",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "seniority_level",
+              "displayName": "seniority_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "experience_fit",
+              "displayName": "experience_fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "matched_skills",
+              "displayName": "matched_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "missing_must_have",
+              "displayName": "missing_must_have",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "missing_nice_to_have",
+              "displayName": "missing_nice_to_have",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills_to_surface",
+              "displayName": "skills_to_surface",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "matched_domain_flags",
+              "displayName": "matched_domain_flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unmatched_domain_flags",
+              "displayName": "unmatched_domain_flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "matched_competencies",
+              "displayName": "matched_competencies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unmatched_competencies",
+              "displayName": "unmatched_competencies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "strengths",
+              "displayName": "strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "gaps",
+              "displayName": "gaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cv_summary_rewrite",
+              "displayName": "cv_summary_rewrite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bullet_rewrites",
+              "displayName": "bullet_rewrites",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2432,
+        -208
+      ],
+      "id": "406ea895-fd41-4c54-962b-6717c52b9079",
+      "name": "Store Results ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEET_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Input\nAccepts: Job Title, Company, \nJob Description (text), CV (PDF)\n\nCV binary → Extract from File\nJD text → JD Parser",
+        "height": 336,
+        "width": 256,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "1c2c3254-f5f5-4c9b-8a87-dcc708a08930",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a CV parser for any professional role across any industry.\nExtract structured information from the CV and return ONLY valid JSON.\n\nRules:\n- Return ONLY valid JSON. No markdown, no code fences, no explanations.\n- Use only information explicitly stated in the CV.\n- If a field has no matching information, return its empty value (\"\", [], or false).\n- Field names must match the schema exactly. Do not rename or nest fields.\n- Skills must be specific (e.g. \"Python\" not \"programming languages\", \"client presentations\" not \"communication\").\n- demonstrated_competencies must be inferred from the candidate's actual experience, projects, and education. Do not copy job titles. Identify what the candidate has actually done and demonstrated across any domain (e.g. \"stakeholder management\", \"data pipeline building\", \"A/B testing\", \"financial modelling\", \"client delivery\").\n- tools_and_platforms should capture specific software, platforms, and tools only. Do not duplicate technical_skills.\n- work_experience entries should each be a single descriptive string capturing company, role, dates, and key achievements.\n- Be generous on inference for demonstrated_competencies — if a project or role clearly demonstrates a capability, include it even if not explicitly labelled.\n\nSchema:\n{\n  \"candidate_name\": \"string\",\n  \"email\": \"string\",\n  \"education\": [\"string (degree, institution, dates)\"],\n  \"languages\": [\"string\"],\n  \"technical_skills\": [\"string (specific technical skills e.g. Python, SQL, financial modelling, DCF)\"],\n  \"soft_skills\": [\"string (explicitly stated soft skills)\"],\n  \"tools_and_platforms\": [\"string (specific tools, software, platforms)\"],\n  \"work_experience\": [\"string (role, company, dates, key achievements in one string)\"],\n  \"projects\": [\"string (project name and description in one string)\"],\n  \"certifications\": [\"string\"],\n  \"demonstrated_competencies\": [\"string (capabilities inferred from experience and projects, domain-agnostic e.g. stakeholder management, A/B testing, dashboard development, client facing, financial analysis)\"]\n}\n\nInput:\nCV Text:\n{{ $('Extract from File').item.json.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        32
+      ],
+      "id": "c8952119-cfff-48a6-88c7-5ab39642e7ec",
+      "name": "CV Parser",
+      "credentials": {
+        "openAiApi": {
+          "id": "slhPoNy1tHhamaAK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.output[0].content[0].text;\n\nreturn [{\n  json: {\n    company: raw.company ?? \"\",\n    job_title: raw.job_title ?? \"\",\n    job_family: raw.job_family ?? \"\",\n    seniority_level: raw.seniority_level ?? \"\",\n    must_have_skills: raw.must_have_skills ?? [],\n    nice_to_have_skills: raw.nice_to_have_skills ?? [],\n    keywords: raw.keywords ?? [],\n    responsibilities: raw.responsibilities ?? [],\n    education_requirements: raw.education_requirements ?? [],\n    language_requirements: Array.isArray(raw.language_requirements)\n      ? raw.language_requirements\n      : raw.language_requirements\n        ? [raw.language_requirements]\n        : [],\n    key_competencies: raw.key_competencies ?? [],\n    domain_flags: raw.domain_flags ?? []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -352
+      ],
+      "id": "1252e125-481b-48b5-8e50-702211a8be5c",
+      "name": "Normalize JD"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.output[0].content[0].text;\n\nreturn [{\n  json: {\n    candidate_name: raw.candidate_name ?? \"\",\n    email: raw.email ?? \"\",\n    education: raw.education ?? [],\n    languages: raw.languages ?? [],\n    technical_skills: raw.technical_skills ?? [],\n    soft_skills: raw.soft_skills ?? [],\n    tools_and_platforms: raw.tools_and_platforms ?? [],\n    work_experience: raw.work_experience ?? [],\n    projects: raw.projects ?? [],\n    certifications: raw.certifications ?? [],\n    demonstrated_competencies: raw.demonstrated_competencies ?? []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        32
+      ],
+      "id": "6235bc5a-2548-4dad-9c2a-0afa66f3ec99",
+      "name": "Normalize CV"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.output[0].content[0].text;\n\nreturn [{\n  json: {\n    match_score: raw.match_score ?? 0,\n    experience_fit: raw.experience_fit ?? \"\",\n    matched_skills: raw.matched_skills ?? [],\n    missing_must_have: raw.missing_must_have ?? [],\n    missing_nice_to_have: raw.missing_nice_to_have ?? [],\n    matched_domain_flags: raw.matched_domain_flags ?? [],\n    unmatched_domain_flags: raw.unmatched_domain_flags ?? [],\n    matched_competencies: raw.matched_competencies ?? [],\n    unmatched_competencies: raw.unmatched_competencies ?? [],\n    strengths: raw.strengths ?? [],\n    gaps: raw.gaps ?? [],\n    recommendation: raw.recommendation ?? \"\",\n    cv_summary_rewrite: raw.cv_summary_rewrite ?? \"\",\n    bullet_rewrites: raw.bullet_rewrites ?? [],\n    skills_to_surface: raw.skills_to_surface ?? []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -208
+      ],
+      "id": "c35ebf32-faa8-4669-aa8b-53fc85496a8b",
+      "name": "Normalize Matcher"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3ae71114-12d7-4676-bfca-2e912a53642c",
+              "leftValue": "={{ $json.match_score }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2736,
+        -208
+      ],
+      "id": "b94bec1b-b870-460b-b4c7-a22e011c208e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a senior hiring manager who has read thousands of cover letters and \nknows exactly what makes someone put one down after the first line versus \nread it twice.\n\nYou are writing a cover letter on behalf of a candidate. Your job is not to \nsummarise their CV — the hiring manager already has it. Your job is to make \na specific argument for why this person, with this background, is the right \nchoice for this role at this company right now.\n\nA great cover letter does three things:\n1. Shows the candidate understands the role deeply — not just the title \n   but what success actually looks like in it\n2. Makes a direct connection between what the candidate has done and what \n   the company needs — using real evidence, not adjectives\n3. Gives the reader a sense of who this person is and how they think \n   so the hiring manager walks away wanting to meet them\n\nRules for writing:\n- Write in first person, past and present tense only.\n  No future tense promises like \"I will bring\" or \"I look forward to contributing\".\n- Every claim must be grounded in a specific thing from the CV.\n  No floating adjectives like \"strong\", \"proven\", \"effective\" without evidence attached.\n- Sentences should vary in length. Two short ones followed by one longer one\n  reads like a human. Three long ones in a row reads like a machine.\n- No throat-clearing openings. The first sentence must be about something real\n  — a number, a decision, a specific problem that was solved.\n- No closing paragraph that starts with \"I welcome\" or \"I look forward\"\n  or references \"the opportunity\". End on a statement of intent, not a request.\n- Never use: leverage, utilize, passionate, driven, dynamic, aligns,\n  synergy, impactful, deliverables, stakeholder-facing, poised to,\n  eager to contribute, welcome the opportunity, the fit is clear,\n  in a world where, hinges on, underscoring, equips me to, em dash,\n  en dash.\n- Never start a sentence with What makes me excited is...\n- Do not summarise the CV. Do not list skills.\n  Make an argument using 2 pieces of evidence maximum per paragraph.\n- The tone should read like a smart person wrote it at 10pm after thinking\n  carefully about why they actually want this job — not like a template\n  was filled in.\n- Use only achievements, skills, and experience explicitly present in the\n  CV data provided. Do not invent metrics, projects, or responsibilities.\n- Never use em dashes or en dashes anywhere. Use a full stop or \n  restructure the sentence instead.\n\nTone instruction:\nApply this tone throughout based on the selected style:\n- professional: formal and precise, conservative language, no informality\n- confident: direct and assured, owns the narrative without overselling\n- conversational: warm and human, reads like a real person wrote it\n- assertive: bold and direct, makes strong claims, suitable for competitive applications\n\nLength instruction:\n- concise: 2 short paragraphs, every sentence earns its place\n- standard: 3 paragraphs — opening, core argument, closing\n- detailed: 4 paragraphs — opening, two evidence paragraphs, closing\n\nStructure:\n- Opening: Do not introduce yourself. Start with something specific —\n  a number, a decision, a problem that was solved. One to two sentences\n  that make the reader lean in. Then connect it to why they are applying.\n- Middle: Make the core argument. Pick the strongest 2 pieces of evidence\n  and build a case. Show the candidate understands what this company needs.\n- Closing: 3 sentences maximum. State intent directly. No grovelling,\n  no \"I would be honoured\". End like someone who knows their worth.\n\nOutput format — plain text, exactly this structure:\n\n[Candidate Full Name]\n\n[Company Name]\n\nDear Hiring Manager,\n\n[Body paragraphs based on selected length]\n\nWarm regards,\n[Candidate Full Name]"
+            },
+            {
+              "content": "=Candidate: {{ $('Output Formatter').item.json.candidate_name }}\nRole: {{ $('Output Formatter').item.json.job_title }}\nCompany: {{ $('Output Formatter').item.json.company }}\n\nTone: {{ $('On form submission').item.json['Cover Letter Tone'] }}\nLength: {{ $('On form submission').item.json['Cover Letter Length'] }}\n\nWhat this role actually needs (responsibilities):\n{{ $('Output Formatter').item.json.matched_skills }}\n\nWhat success looks like in this role (domain flags):\n{{ $('Output Formatter').item.json.matched_domain_flags }}\n\nWhat the company values (key competencies):\n{{ $('Output Formatter').item.json.matched_competencies }}\n\nCandidate's strongest relevant evidence:\n{{ $('Output Formatter').item.json.strengths }}\n\nReal CV bullets to draw from:\n{{ $('Output Formatter').item.json.bullet_rewrites }}\n\nCV narrative for context:\n{{ $('Output Formatter').item.json.cv_summary_rewrite }}\n\nGaps to reference only if it strengthens honesty:\n{{ $('Output Formatter').item.json.gaps }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "text"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        3056,
+        -384
+      ],
+      "id": "3cf3b116-07e2-4916-9f7d-8e4ad7c8cf39",
+      "name": "Cover Letter Generator",
+      "credentials": {
+        "openAiApi": {
+          "id": "slhPoNy1tHhamaAK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const jd = $('Normalize JD').item.json;\nconst cv = $('Normalize CV').item.json;\nconst match = $('Normalize Matcher').item.json;\n\nreturn [{\n  json: {\n    // Metadata\n    submitted_at: new Date().toISOString(),\n\n    // Candidate info\n    candidate_name: cv.candidate_name,\n    email: cv.email,\n\n    // Role info\n    company: jd.company,\n    job_title: jd.job_title,\n    job_family: jd.job_family,\n    seniority_level: jd.seniority_level,\n\n    // Match results\n    match_score: match.match_score,\n    experience_fit: match.experience_fit,\n    recommendation: match.recommendation,\n\n    // Skills\n    matched_skills: match.matched_skills.join(', '),\n    missing_must_have: match.missing_must_have.join(', ') || 'None',\n    missing_nice_to_have: match.missing_nice_to_have.join(', ') || 'None',\n    skills_to_surface: match.skills_to_surface.join(', '),\n\n    // Domain flags\n    matched_domain_flags: match.matched_domain_flags.join(', '),\n    unmatched_domain_flags: match.unmatched_domain_flags.join(', ') || 'None',\n\n    // Competencies\n    matched_competencies: match.matched_competencies.join(', '),\n    unmatched_competencies: match.unmatched_competencies.join(', ') || 'None',\n\n    // Qualitative\n    strengths: match.strengths.join(' | '),\n    gaps: match.gaps.join(' | '),\n\n    // CV improvement outputs\n    cv_summary_rewrite: match.cv_summary_rewrite,\n    bullet_rewrites: match.bullet_rewrites.join('\\n'),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -208
+      ],
+      "id": "7e05c511-a0e8-427b-8e8b-91be379d823e",
+      "name": "Output Formatter"
+    },
+    {
+      "parameters": {
+        "errorMessage": "CV extraction failed — the uploaded file appears to be empty or unreadable.  Please ensure the file is a valid PDF and resubmit."
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        144,
+        48
+      ],
+      "id": "YOUR_ERROR_WORKFLOW_ID",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "content": "## Normalize CV\nUnwraps OpenAI response structure.\nFlattens to clean $json fields.",
+        "height": 368,
+        "width": 336,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        656,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "839817b9-067c-418a-9437-ab274ecdcadc",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## CV Extraction\nConverts uploaded PDF to raw text.\n\nIF text < 50 chars → Stop + Error\n(catches blank or unreadable PDFs)",
+        "height": 544,
+        "width": 432,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -176,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "2cb23aeb-8fd1-4a88-b896-c52aff003e61",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## JD Parser\nModel: gpt-4o-mini\nResponse: JSON Object\n\nExtracts role info, skills, responsibilities, and dynamic, domain_flags from the JD text.\n\nAdjust Prompts to play around the theme of your response",
+        "height": 368,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        288,
+        -576
+      ],
+      "typeVersion": 1,
+      "id": "c1a0167f-f3d0-4c9a-be43-0eef9c89b354",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## CV Parser\nModel: gpt-4o-mini\nResponse: JSON Object\n\nExtracts skills, experience, \nprojects, and demonstrated_\ncompetencies from CV text.\nDomain-agnostic — works for \nany role, any industry.",
+        "height": 368,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        288,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "9048897a-8695-4112-a26c-f55804976017",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Normalize JD\nUnwraps OpenAI response structure.\nFlattens to clean $json fields.\nHandles language_requirements \nstring → array edge case.",
+        "height": 368,
+        "width": 336,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        656,
+        -576
+      ],
+      "typeVersion": 1,
+      "id": "e5d02545-6425-4d44-a067-6054077889f1",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## Merge\nCombines JD + CV outputs \ninto one flat object.\n\nMode: Combine by Position\nInput 1: Normalize JD\nInput 2: Normalize CV",
+        "height": 352,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "16e81882-0657-4cef-a0bd-d37dc90edba3",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "##  CV Matcher\nModel: gpt-4o-mini \nResponse: JSON Object\n\nScores match 0–100.\nCompares domain_flags vs \ndemonstrated_competencies.\nReturns strengths, gaps, \nrewrites, and recommendation.",
+        "height": 400,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1296,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "58db73ba-36a4-4604-90c6-59abe513d072",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Normalize Matcher\nUnwraps OpenAI response structure.\nValidates match_score is a number.\nFlattens to clean $json fields.\nTry/catch throws named errors.",
+        "height": 288,
+        "width": 304,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1664,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "d27ec4c3-1a40-45c8-94a7-a16f778fa3a7",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Store Results\nAppends one row per submission.\n22 columns — see sheet headers.\n\nSheet: FitCheck Results\nOperation: Append",
+        "height": 336,
+        "width": 256,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2352,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "94779d1f-529e-42bc-a7f3-966ad672b83f",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## Output Formatter\nCombines JD + CV + Match data \ninto one flat object.\n\nArrays → comma-separated strings\nReady for Sheets column mapping.\nTry/catch validates all 3 sources.",
+        "height": 352,
+        "width": 320,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2000,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "ffff2d47-5989-4540-b54a-39867a9b3781",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "## Score Gate\nTRUE  (≥ 70) → Cover Letter Generator\n               → Normalize Cover Letter\n               → Email Candidate Results\n\nFALSE (< 70) → Set Empty Cover Letter\n               → Email Candidate Results\n\nPrevents unnecessary gpt-4o call\non weak matches.",
+        "height": 400,
+        "width": 304,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2640,
+        -432
+      ],
+      "typeVersion": 1,
+      "id": "6b0713d2-5645-4c73-af63-00bb69cc3056",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "## Cover Letter\nModel: gpt-4o\nResponse: Text\n\nOnly runs for strong matches.\nUses real CV achievements only.\nDo not switch to gpt-4o-mini —\nwriting quality matters here.",
+        "height": 352,
+        "width": 320,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2992,
+        -592
+      ],
+      "typeVersion": 1,
+      "id": "29719b7b-1954-4c78-b287-af345035ec1f",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "## Candidate Email\nSends results + cover letter  to candidate's email from CV.\n\nTo: candidate email (from CV Parser)\nIncludes: score, strengths, gaps,\nrewrites, cover letter.",
+        "height": 352,
+        "width": 368,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3664,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "5255018b-0b08-48c3-9ed8-b3d81c2f434f",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "53254aee-b0cd-4554-9ad2-ec0ae485c442",
+              "leftValue": "={{ $json.text.length }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        -128
+      ],
+      "id": "c853cfc4-c80e-4ec7-9c4c-82f11fbf4858",
+      "name": "Validate CV Text"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Output Formatter').item.json.email }}",
+        "subject": "=[{{ $('Output Formatter').item.json.match_score }}%] {{ $('Output Formatter').item.json.candidate_name }} → {{ $('Output Formatter').item.json.job_title }} at {{ $('Output Formatter').item.json.company }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n\n  <h2 style=\"color: #1a1a1a;\">Hi {{ $('Output Formatter').item.json.candidate_name }},</h2>\n  <p>Here are your results for <strong>{{ $('Output Formatter').item.json.job_title }}</strong> at <strong>{{ $('Output Formatter').item.json.company }}</strong>.</p>\n\n  <div style=\"background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 20px 0;\">\n    <p style=\"margin: 0; font-size: 24px; font-weight: bold; color: #1a1a1a;\">{{ $('Output Formatter').item.json.match_score }}<span style=\"font-size: 14px; font-weight: normal;\">/100</span></p>\n    <p style=\"margin: 4px 0 0; color: #666; text-transform: uppercase; font-size: 12px;\">{{ $('Output Formatter').item.json.experience_fit }} match</p>\n  </div>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Recommendation</h3>\n  <p>{{ $('Output Formatter').item.json.recommendation }}</p>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Strengths for this role</h3>\n  <ul style=\"padding-left: 20px;\">\n    {{ $('Output Formatter').item.json.strengths.split(' | ').map(s => '<li style=\"margin-bottom: 6px;\">' + s + '</li>').join('') }}\n  </ul>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Gaps to address</h3>\n  <ul style=\"padding-left: 20px;\">\n    {{ $('Output Formatter').item.json.gaps.split(' | ').map(g => '<li style=\"margin-bottom: 6px;\">' + g + '</li>').join('') }}\n  </ul>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Skills to highlight</h3>\n  <p>{{ $('Output Formatter').item.json.skills_to_surface }}</p>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Rewritten CV summary</h3>\n  <p style=\"background: #f9f9f9; padding: 12px; border-left: 3px solid #ccc; border-radius: 4px;\">{{ $('Output Formatter').item.json.cv_summary_rewrite }}</p>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Improved CV bullets</h3>\n  <ul style=\"padding-left: 20px;\">\n    {{ $('Output Formatter').item.json.bullet_rewrites.split('\\n').map(b => '<li style=\"margin-bottom: 8px;\">' + b + '</li>').join('') }}\n  </ul>\n\n  <h3 style=\"color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 8px;\">Suggested Cover letter</h3>\n  <div style=\"background: #f9f9f9; padding: 16px; border-radius: 8px; white-space: pre-line;\">{{ $('Normalize Cover Letter').item.json.cover_letter_text ?? 'Your score was below the threshold — no cover letter was generated.' }}</div>\n\n  <p style=\"margin-top: 32px; color: #666; font-size: 13px;\">Good luck with your application.</p>\n  <p style=\"color: #999; font-size: 11px; margin-top: 8px;\">Sent automatically by FitCheck</p>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3760,
+        -16
+      ],
+      "id": "fad56cf8-1cf9-475b-aab6-0b4171e8def8",
+      "name": "Email Candidate Results",
+      "webhookId": "6f91d4d7-e40d-4a75-a3d4-8bd896300b8f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_WEBHOOK_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Normalize Cover Letter\nUnwraps OpenAI response structure.\n\nHandles two cases:\n- Plain text response (current)\n- JSON object with cover_letter key (fallback)\n\nOutput: { cover_letter_text: \"...\" }\nTry/catch throws named errors.",
+        "height": 384,
+        "width": 320,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3344,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "aceb4a4a-b0cc-406f-92f6-28a7cb75a1ec",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const raw = $input.item.json.output?.[0]?.content?.[0]?.text;\n\n  if (!raw) {\n    throw new Error('Cover letter is empty — check Cover Letter Generator node');\n  }\n\n  // text is now a plain string directly\n  const text = typeof raw === 'string' ? raw : raw?.cover_letter ?? \"\";\n\n  if (!text) {\n    throw new Error('Cover letter text could not be extracted');\n  }\n\n  return [{\n    json: {\n      cover_letter_text: text\n    }\n  }];\n\n} catch(e) {\n  throw new Error('Cover Letter Normalize failed: ' + e.message);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        -384
+      ],
+      "id": "f8de86d1-60e0-4308-aad3-3ab06b649697",
+      "name": "Normalize Cover Letter"
+    },
+    {
+      "parameters": {
+        "content": "## Empty Cover Letter (False Path)\nRuns when match_score < 70.\nCover Letter Generator never executes\non this path so we set a default value\nto prevent Gmail node reference errors.\n\nOutput: { cover_letter_text: \"below threshold message\" }",
+        "height": 336,
+        "width": 416,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2992,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "792c22b8-ddf5-4794-9ed2-f3f0f9e6873f",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"cover_letter_text\": \"{{ $('Cover Letter Generator').item.json.text }}\"\n}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3072,
+        0
+      ],
+      "id": "2886c134-4fb9-4248-97f9-e40dd54bd261",
+      "name": "cover_letter_text"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Parser": {
+      "main": [
+        [
+          {
+            "node": "Normalize JD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Validate CV Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "CV matcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV matcher": {
+      "main": [
+        [
+          {
+            "node": "Normalize Matcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Parser": {
+      "main": [
+        [
+          {
+            "node": "Normalize CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize JD": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize CV": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Normalize Matcher": {
+      "main": [
+        [
+          {
+            "node": "Output Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Results ": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Cover Letter Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cover_letter_text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Formatter": {
+      "main": [
+        [
+          {
+            "node": "Store Results ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate CV Text": {
+      "main": [
+        [
+          {
+            "node": "JD Parser",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CV Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cover Letter Generator": {
+      "main": [
+        [
+          {
+            "node": "Normalize Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Email Candidate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cover_letter_text": {
+      "main": [
+        [
+          {
+            "node": "Email Candidate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "e6FQu0vuBwKRP55S",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1
+  },
+  "versionId": "cf423840-d95c-483a-b8f3-e4f56342fdbf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "DXApF8yLGr6YqG8t",
+  "tags": []
+}
