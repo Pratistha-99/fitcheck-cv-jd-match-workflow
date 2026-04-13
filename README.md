@@ -14,6 +14,7 @@ Built as a portfolio project demonstrating AI automation, prompt engineering, an
 4. If score ≥ 70, a tailored cover letter is generated using gpt-4o
 5. Results + cover letter are emailed directly to the candidate
 6. All submissions are logged to Google Sheets
+<img width="1399" height="610" alt="image" src="https://github.com/user-attachments/assets/84a814b5-bf8c-4a0b-b676-1a04e56d8e3f" />
 
 ---
 
