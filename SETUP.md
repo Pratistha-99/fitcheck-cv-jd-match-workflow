@@ -18,7 +18,7 @@
 
 ## 2. Set up credentials
 
-Copy `.env.example` to `.env` and fill in your values.
+Copy `.env.example` to `.env` and fill in your values
 
 In n8n, create the following credentials under **Settings → Credentials**:
 
